@@ -1,0 +1,164 @@
+<script>
+  function updateCartCount() {
+    $.ajax({
+      url: "/shop/cart/",
+      type: "GET",
+      success: function (response) {
+        if (response.status === "success") {
+          $("#cartCount").text(`(${response.cart.length})`);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching cart count:", error);
+      },
+    });
+  }
+
+  function updateFavCount() {
+    $.ajax({
+      url: "/shop/favorite/",
+      type: "GET",
+      success: function (response) {
+        if (response.status === "success") {
+          $("#favCount").text(`(${response.fav.length})`);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching fav count:", error);
+      },
+    });
+  }
+
+  function renderCart(cartData) {
+    const cartBody = $("#offcanvasCart .offcanvas-body");
+    let cartHTML = `
+            <div class="order-md-last">
+                <h4 class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-primary">Your cart</span>
+                    <span class="badge bg-primary rounded-pill">${cartData.length}</span>
+                </h4>
+                <ul class="list-group mb-3">
+        `;
+
+    let total = 0;
+
+    cartData.forEach((item) => {
+      total += item.price * item.quantity;
+      cartHTML += `
+                <li class="list-group-item d-flex justify-content-between lh-sm">
+                    <div class="d-flex flex-column">
+                        <h6 class="my-0">${item.title} (${item.quantity})</h6>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-body-secondary me-3">$${
+                          item.price * item.quantity
+                        }</span>
+                        <button class="btn btn-sm btn-outline-danger remove-from-cart"
+                                data-product-id="${item.id}">
+                            <span class="button-text">×</span>
+                            <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        </button>
+                    </div>
+                </li>
+            `;
+    });
+
+    cartHTML += `
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Total (USD)</span>
+                    <strong>$${total.toFixed(2)}</strong>
+                </li>
+            </ul>
+        `;
+
+    if (cartData.length > 0) {
+      cartHTML += `
+                <button class="w-100 btn btn-primary btn-lg checkout-btn" type="button">
+                    Continue to Checkout
+                </button>
+            `;
+    } else {
+      cartHTML += `
+                <div class="text-center text-muted py-4">
+                    Your cart is empty
+                </div>
+            `;
+    }
+
+    cartHTML += "</div>";
+    cartBody.html(cartHTML);
+
+    $("#cartCount").text(`(${cartData.length})`);
+  }
+
+  function updateCart() {
+    $.ajax({
+      url: "/shop/cart/",
+      type: "GET",
+      success: function (response) {
+        if (response.status === "success") {
+          renderCart(response.cart);
+        } else {
+          console.error("Error fetching cart:", response.message);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error fetching carts:", error);
+      },
+    });
+  }
+
+  $(document).ready(function () {
+    let quantity = parseInt($("#quantity").val());
+
+    $(document).on("click", ".remove-from-cart", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const productId = $(this).data("product-id");
+      const button = $(this);
+      const buttonText = button.find(".button-text");
+      const spinner = button.find(".spinner-border");
+
+      buttonText.addClass("d-none");
+      spinner.removeClass("d-none");
+
+      $.ajax({
+        url: "/shop/cart/",
+        type: "POST",
+        data: JSON.stringify({
+          product_id: productId,
+          action: "remove",
+        }),
+        contentType: "application/json",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        success: function (response) {
+          if (response.status === "success") {
+            updateCart();
+          } else {
+            alert(response.message);
+
+            buttonText.removeClass("d-none");
+            spinner.addClass("d-none");
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("Error:", error);
+          alert("An error occurred. Please try again.");
+
+          buttonText.removeClass("d-none");
+          spinner.addClass("d-none");
+        },
+      });
+    });
+
+    $("#offcanvasCart").on("show.bs.offcanvas", function () {
+      updateCart();
+    });
+
+    updateCartCount();
+    updateFavCount();
+  });
+</script>

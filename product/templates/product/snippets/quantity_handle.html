@@ -1,0 +1,111 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const pricePerUnit = {{ product.price }};
+
+    function updateTotalPrice(quantity) {
+        const totalPrice = (pricePerUnit * quantity).toFixed(2);
+        $("#totalPrice").text(`Total Price: $${totalPrice}`);
+    }
+
+    function toggleItem($button, type) {
+        const productId = $button.data("product-id");
+        const isInItem = $button.data(type === "cart" ? "in-cart" : "in-favorites") === true;
+        const action = isInItem ? "remove" : "add";
+        const quantity = parseInt($("#quantity").val());
+        const $buttonText = $button.find(".button-text");
+        const $spinner = $button.find(".spinner-border");
+        $buttonText.addClass("d-none");
+        $spinner.removeClass("d-none");
+        $button.prop("disabled", true);
+
+        $.ajax({
+            url: `/shop/${type}/`,
+            type: "POST",
+            data: JSON.stringify({
+                product_id: productId,
+                action: action,
+                quantity: quantity,
+            }),
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            contentType: "application/json",
+            success: function (response) {
+                if (type === "cart") {
+                    updateCartCount();
+                    $button.data("in-cart", !isInItem);
+                    $buttonText.text(isInItem ? "Add to Cart" : "Remove from Cart");
+                    $button.toggleClass("btn-primary btn-danger");
+                } else {
+                    updateFavCount();
+                    $button.data("in-favorites", !isInItem);
+                    $buttonText.text(isInItem ? "♡ Add to Favorites" : "♥ Remove from Favorites");
+                    $button.toggleClass("btn-secondary btn-danger");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error:", error);
+                if (type === "cart") {
+                    $buttonText.text(isInItem ? "Remove from Cart" : "Add to Cart");
+                } else {
+                    $buttonText.text(isInItem ? "♥ Remove from Favorites" : "♡ Add to Favorites");
+                }
+            },
+            complete: function () {
+                $buttonText.removeClass("d-none");
+                $spinner.addClass("d-none");
+                $button.prop("disabled", false);
+            },
+        });
+    }
+
+    document.getElementById('quantity').oninput = function () {
+        var max = parseInt(this.max);
+        var min = parseInt(this.min);
+        if (parseInt(this.value) > max) {
+            this.value = max;
+        }
+        if (parseInt(this.value) < parseInt(this.min)) {
+            this.value = min;
+        }
+        console.log(this.value)
+        updateTotalPrice(this.value)
+    }
+
+    $(document).ready(function() {
+      let quantity = 1;
+      updateTotalPrice(quantity);
+      $(".quantity-right-plus").click(function (e) {
+        e.preventDefault();
+        quantity = parseInt($("#quantity").val());
+        quantity += 1;
+        if (quantity > {{ product.quantity }}) {
+          quantity = {{ product.quantity }};
+        }
+        $("#quantity").val(quantity);
+        updateTotalPrice(quantity);
+      });
+
+      $(".quantity-left-minus").click(function (e) {
+        e.preventDefault();
+        quantity = parseInt($("#quantity").val());
+        quantity -= 1;
+        if (quantity <= 0) {
+          quantity = 1;
+        }
+        $("#quantity").val(quantity);
+        updateTotalPrice(quantity);
+      });
+
+      $("#cartButton").click(function () {
+        toggleItem($(this), "cart");
+        });
+
+        $("#favoriteButton").click(function () {
+            toggleItem($(this), "favorite");
+        });
+
+
+
+  });
+</script>

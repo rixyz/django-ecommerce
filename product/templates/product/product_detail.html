@@ -1,0 +1,112 @@
+{% extends './base.html' %} {% load static %} {% load cart_extras %}
+{% block title %}{{ product.title }}{% endblock %} 
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8">
+      <h1 class="display-4">{{ product.title }}</h1>
+      <p>{{ product.description }}</p>
+    </div>
+
+    <div class="col-lg-4 text-right">
+      <h3 class="text-muted" id="totalPrice">Price: ${{ product.price }}</h3>
+      <p><strong>Quantity Available:</strong> {{ product.quantity }}</p>
+      <div class="input-group">
+        <span class="input-group-btn">
+          <button
+            type="button"
+            class="quantity-left-minus btn btn-danger btn-number"
+            data-type="minus"
+            data-field=""
+          >
+            <span class="">-</span>
+          </button>
+        </span>
+        <input
+          type="number"
+          id="quantity"
+          name="quantity"
+          class="form-control input-number"
+          value="1"
+          min="1"
+          max="{{ product.quantity }}"
+        />
+        <span class="input-group-btn">
+          <button
+            type="button"
+            class="quantity-right-plus btn btn-success btn-number"
+            data-type="plus"
+            data-field=""
+          >
+            <span class="">+</span>
+          </button>
+        </span>
+      </div>
+      <p><strong>Category:</strong> {{ product.category.title }}</p>
+      <p><strong>Seller:</strong> {{ product.seller.get_full_name }}</p>
+
+      <button
+      id="cartButton"
+      class="btn w-100 mb-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
+      data-product-id="{{ product.id }}"
+      data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
+  >
+      <span class="button-text">
+          {% if product|cart_of:user %} 
+              Remove from Cart 
+          {% else %} 
+              Add to Cart 
+          {% endif %}
+      </span>
+      <span
+          class="spinner-border spinner-border-sm d-none"
+          role="status"
+      ></span>
+  </button>
+  
+
+      <button
+        id="favoriteButton"
+        class="btn w-100 {% if product in request.user.favorite.product.all %}btn-danger{% else %}btn-secondary{% endif %}"
+        data-product-id="{{ product.id }}"
+        data-in-favorites="{% if product in request.user.favorite.product.all %}true{% else %}false{% endif %}"
+      >
+        <span class="button-text">
+          {% if product in request.user.favorite.product.all %} ♥ Remove from Favorites {% else %} ♡ Add to Favorites {% endif %}
+        </span>
+        <span
+          class="spinner-border spinner-border-sm d-none"
+          role="status"
+        ></span>
+      </button>
+    </div>
+  </div>
+  <div class="row my-4">
+    <div class="col-12">
+      <h3>Product Images</h3>
+    </div>
+
+    {% if images %}
+    <div class="col-12">
+      <div class="row">
+        {% for image in images %}
+        <div class="col-md-4 mb-4">
+          <img
+            src="{{ image.image.url }}"
+            class="img-fluid"
+            alt="Image of {{ product.title }}"
+          />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+      <p class="text-muted">No images available for this product.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% include 'product/snippets/quantity_handle.html' %} 
+{% endblock %}
