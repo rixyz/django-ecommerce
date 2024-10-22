@@ -17,16 +17,19 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('title', 'category', 'price', 'quantity', 'images', 'action')
     search_fields = ('title', 'description')
     actions = None
+
     def action(self, request):
-    
-        return format_html('<button class="delete-btn" data-product-id="{}">Delete</button>'.format(request.id))
+        return format_html(
+            '<button class="delete-btn" data-product-id="{}">Delete</button>',
+            request.id
+        )
 
     def images(self, request):
         images = ProductImage.objects.filter(product=request)
         return format_html_join(
             ' ',
-            '<a href="/media/{}"><img src="/media/{}" width="50" height="50"/></a>',
-            ((image.image,image.image) for image in images)
+            '<a href="javascript:void(0)" onclick="showImage(\'/media/{}\')"><img src="/media/{}" width="50" height="50" style="cursor: pointer"/></a>',
+            ((image.image, image.image) for image in images)
         )
     images.short_description = 'Images'
     images.allow_tags = True

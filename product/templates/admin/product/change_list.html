@@ -1,7 +1,24 @@
 {% extends "admin/change_list.html" %}
 {% load i18n %}
 
+{% block object-tools-items %}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+
+</style>
+{% endblock %}
+
 {% block content %}
+<ul class="object-tools">
+    <li>     
+      <a href="{{ request.path }}add/" class="addlink">
+        Add product
+      </a>
+    </li> 
+</ul>
 <div class="category-tabs">
     <a href="?" class="tab {% if not selected_category %}active{% endif %}">
         {% trans "All Products" %}
@@ -14,8 +31,43 @@
     {% endfor %}
 </div>
 
+<div id="imageModal">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <img class="modal-image" src="" alt="Product Image">
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    function showImage(imagePath) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = modal.querySelector('.modal-image');
+        modal.style.display = 'flex';
+        modalImg.src = imagePath;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('imageModal');
+        const modalClose = modal.querySelector('.modal-close');
+
+        modalClose.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+            }
+        });
+    });
+
     $(document).ready(function() {
         $('.delete-btn').click(function() {
             let productId = $(this).data('product-id');
