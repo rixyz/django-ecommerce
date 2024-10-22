@@ -67,32 +67,6 @@
             }
         });
     });
-
-    $(document).ready(function() {
-        $('.delete-btn').click(function() {
-            let productId = $(this).data('product-id');
-            if (confirm('Are you sure you want to delete this product?')) {
-                $.ajax({
-                    url: `/shop/product/${productId}/delete/`,
-                    type: 'DELETE',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            alert(response.message);
-                            location.reload(); 
-                        } else {
-                            alert(response.message);
-                        }
-                    },
-                    error: function(xhr) {
-                        alert('An error occurred while deleting the product.');
-                    }
-                });
-            }
-        });
-    });
 </script>
 
 {{ block.super }}

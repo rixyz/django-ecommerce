@@ -110,3 +110,23 @@
     max-height: 80vh;
     object-fit: contain;
 }
+
+.delete-btn {
+    display: inline-block;
+    background-color: #e74c3c; 
+    color: white; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    text-decoration: none; 
+    font-size: 16px; 
+    font-weight: bold;
+    transition: background-color 0.3s ease; 
+}
+
+.delete-btn:hover {
+    background-color: #c0392b; 
+}
+
+.delete-btn:active {
+    transform: scale(0.98);
+}
