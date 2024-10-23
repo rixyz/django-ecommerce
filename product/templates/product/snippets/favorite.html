@@ -73,9 +73,9 @@
 
     if (cartData.length > 0) {
       cartHTML += `
-                <button class="w-100 btn btn-primary btn-lg checkout-btn" type="button">
+                <a href={% url 'checkout' %} class="w-100 btn btn-primary btn-lg checkout-btn" >
                     Continue to Checkout
-                </button>
+                </>
             `;
     } else {
       cartHTML += `
@@ -124,8 +124,8 @@
       spinner.removeClass("d-none");
 
       $.ajax({
-        url: "/shop/cart/",
-        type: "POST",
+        url: `/shop/cart/remove/${productId}/`,
+        type: "DELETE",
         data: JSON.stringify({
           product_id: productId,
           action: "remove",

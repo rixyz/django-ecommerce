@@ -1,16 +1,37 @@
-{% extends './base.html' %} {% load static %} {% load cart_extras %}
+{% extends './base.html' %} {% load static %} {% load cart_extras %} 
 {% block title %}{{ product.title }}{% endblock %} 
 {% block content %}
-<div class="container my-5">
+<div class="container ">
   <div class="row">
     <div class="col-lg-8">
       <h1 class="display-4">{{ product.title }}</h1>
       <p>{{ product.description }}</p>
+      {% if images %}
+      <div class="col-12">
+        <div class="row">
+          {% for image in images %}
+          <div class="col-md-4 mb-4">
+            <img
+              src="{{ image.image.url }}"
+              class="img-fluid"
+              alt="Image of {{ product.title }}"
+              style="max-width: 200px; height: auto;"
+            />
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12">
+        <p class="text-muted">No images available for this product.</p>
+      </div>
+      {% endif %}
     </div>
 
     <div class="col-lg-4 text-right">
       <h3 class="text-muted" id="totalPrice">Price: ${{ product.price }}</h3>
       <p><strong>Quantity Available:</strong> {{ product.quantity }}</p>
+      {% if user.is_authenticated %}
       <div class="input-group">
         <span class="input-group-btn">
           <button
@@ -42,28 +63,25 @@
           </button>
         </span>
       </div>
+      {% endif %}
       <p><strong>Category:</strong> {{ product.category.title }}</p>
       <p><strong>Seller:</strong> {{ product.seller.get_full_name }}</p>
-
+      {% if user.is_authenticated %}
       <button
-      id="cartButton"
-      class="btn w-100 mb-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
-      data-product-id="{{ product.id }}"
-      data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
-  >
-      <span class="button-text">
-          {% if product|cart_of:user %} 
-              Remove from Cart 
-          {% else %} 
-              Add to Cart 
+        id="cartButton"
+        class="btn w-100 mb-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
+        data-product-id="{{ product.id }}"
+        data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
+      >
+        <span class="button-text">
+          {% if product|cart_of:user %} Remove from Cart {% else %} Add to Cart
           {% endif %}
-      </span>
-      <span
+        </span>
+        <span
           class="spinner-border spinner-border-sm d-none"
           role="status"
-      ></span>
-  </button>
-  
+        ></span>
+      </button>
 
       <button
         id="favoriteButton"
@@ -72,40 +90,20 @@
         data-in-favorites="{% if product in request.user.favorite.product.all %}true{% else %}false{% endif %}"
       >
         <span class="button-text">
-          {% if product in request.user.favorite.product.all %} ♥ Remove from Favorites {% else %} ♡ Add to Favorites {% endif %}
+          {% if product in request.user.favorite.product.all %} ♥ Remove from
+          Favorites {% else %} ♡ Add to Favorites {% endif %}
         </span>
         <span
           class="spinner-border spinner-border-sm d-none"
           role="status"
         ></span>
       </button>
+      {% else %}
+      <a type="button" class="btn btn-primary btn-lg" href="/user/login/">Login to buy product</a>
+      {% endif %}
     </div>
   </div>
-  <div class="row my-4">
-    <div class="col-12">
-      <h3>Product Images</h3>
-    </div>
 
-    {% if images %}
-    <div class="col-12">
-      <div class="row">
-        {% for image in images %}
-        <div class="col-md-4 mb-4">
-          <img
-            src="{{ image.image.url }}"
-            class="img-fluid"
-            alt="Image of {{ product.title }}"
-          />
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% else %}
-    <div class="col-12">
-      <p class="text-muted">No images available for this product.</p>
-    </div>
-    {% endif %}
-  </div>
 </div>
 
 {% include 'product/snippets/quantity_handle.html' %} 

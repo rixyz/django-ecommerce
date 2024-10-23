@@ -37,5 +37,5 @@ class User(AbstractUser):
     objects = CustomUserModel()
     
     def __str__(self):
-        return self.email
+        return f"({self.id}) {self.email}"
 

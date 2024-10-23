@@ -73,8 +73,19 @@ class Cart(models.Model):
     class Meta:
         unique_together = ('user', 'product',)
 
+    def complete(self, amount):
+        self.quantity -= amount
+
+        if self.quantity < 0:
+            return False
+        elif self.quantity == 0:
+            self.delete()
+        else:
+            self.save()
+        return True
+
     def __str__(self):
-        return f"{self.product.title} ({self.product.id}) - {self.user.first_name}"
+        return f"{self.quantity} {self.product.title} ({self.product.id}) - {self.user.first_name}"
 
 class Order(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -83,9 +94,29 @@ class Order(models.Model):
     address = models.TextField()
     quantity = models.PositiveIntegerField(default=1)
 
-    def __str__(self):
-        return f"Order {self.id} by {self.user.first_name}"
+    @classmethod
+    def create(cls,product, user, address, quantity):
+        order, created = Order.objects.get_or_create(product=product, user=user, address=address, quantity=quantity)
+        if created:
+            return True
+        return False
 
+    def complete(self, address):
+        if self.product.quantity >= self.quantity:
+            self.address = address
+            self.is_paid = True
+            self.save()
+
+            self.product.quantity -= self.quantity
+            self.product.save()
+            return True
+        else:
+            return False
+    
+    def __str__(self):
+        return f"{self.quantity} {self.product.title} ({self.product.id}) - {self.user.first_name}"
+    
+    
 class Favorite(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     product = models.ManyToManyField(Product, related_name='favorites')

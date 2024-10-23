@@ -1,0 +1,62 @@
+{% extends './base.html' %} {% load static %} 
+{% block title %} {{ category.title }} {%endblock %} {% block content %}
+<section id="billboard" class="bg-light py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <h1 class="section-title text-center mt-4" data-aos="fade-up">
+        {{category.title}}
+      </h1>
+    </div>
+    <div class="container">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for product in products %}
+        <div class="col">
+          <div class="card product-card h-100">
+            <div class="image-zoom-effect">
+              <div class="image-holder">
+                {% if product.image %}
+                <img
+                  src="{{ product.image.url }}"
+                  alt="{{ product.title }}"
+                  class="card-img-top img-fluid"
+                />
+                {% else %}
+                <div class="no-image-placeholder p-4 bg-light text-center">
+                  <p class="mb-0 text-muted">No image available</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="card-body banner-content py-4">
+              <h5 class="card-title element-title text-uppercase">
+                <a
+                  href="{% url 'product-detail' product.id %}"
+                  class="item-anchor text-decoration-none"
+                >
+                  {{ product.title }}
+                </a>
+              </h5>
+              <p class="card-text">{{ product.description }}</p>
+              <div class="btn-left mt-3">
+                <a
+                  href="{% url 'product-detail' product.id %}"
+                  class="btn btn-primary fs-6 text-uppercase text-decoration-none"
+                >
+                  Buy
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+          <h3 class="text-muted">No Items Available</h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

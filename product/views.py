@@ -7,7 +7,7 @@ from django.http import JsonResponse
 import json
 
 from product.forms import ProductForm
-from product.models import Product, Category, ProductImage, Cart, Favorite
+from product.models import Product, Category, ProductImage, Cart, Favorite, Order
 
 class ProductView(View):
     def get(self, request, *args, **kwargs):
@@ -63,7 +63,7 @@ class ProductCreateView(LoginRequiredMixin, View):
 
 class ProductDetailView(View):
     def get(self, request, *args, **kwargs):
-        product_id = self.kwargs.get("pk")
+        product_id = kwargs.get("pk")
         product = get_object_or_404(Product, id=product_id)
         images = ProductImage.objects.filter(product=product)
 
@@ -72,110 +72,195 @@ class ProductDetailView(View):
             'images': images
         })
 
-class CartView(View, LoginRequiredMixin):
-    def get(self, request):
+class CategoryView(View):
+    def get(self, request, *args, **kwargs):
+        category_id = kwargs.get("pk")
+        category = get_object_or_404(Category, id=category_id)
+        products = Product.objects.filter(category=category)
+        categories_product = []
+        for product in products:
+            product_image = ProductImage.objects.filter(product=product).first() 
+            categories_product.append({
+                'id': product.id,
+                'title': product.title,
+                'description': product.description,
+                'price': product.price,
+                'image': product_image.image,
+            })
+        return render(request, 'product/categories.html', {'products': categories_product, 'category': category})
+
+class CartView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
         cart_items = Cart.objects.filter(user=request.user)
         if not cart_items:
             return JsonResponse({'status': 'success', 'cart': []})
-
-        cart_data = []
-        for cart_item in cart_items:
-            product = cart_item.product
-            cart_data.append({
-                'id': product.id,
-                'title': product.title,
-                'price': product.price,
-                'quantity': cart_item.quantity,
-            })
-
+        
+        cart_data = [{
+            'id': item.product.id,
+            'title': item.product.title,
+            'price': item.product.price,
+            'quantity': item.quantity,
+        } for item in cart_items]
+        
         return JsonResponse({
             'status': 'success',
             'cart': cart_data,
         })
 
     def post(self, request, *args, **kwargs):
+        product_id = kwargs.get("pk") 
         data = json.loads(request.body)
-        product_id = data.get('product_id')
-        action = data.get('action')
         quantity = data.get('quantity')
 
-        if not product_id or action not in ['add', 'remove']:
+        if not product_id:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid request parameters'
+                'message': 'Product ID is required'
             }, status=400)
 
         product = get_object_or_404(Product, id=product_id)
-        if action == 'add':
-            if product.in_cart_of(request.user):
-                return JsonResponse({
-                'status': 'failed',
+        
+        if product.in_cart_of(request.user):
+            return JsonResponse({
+                'status': 'error',
                 'message': "Already in cart",
                 'in_cart': True
-            })
-            product.add_to_cart(request.user, quantity)
-            message = 'Product added to cart successfully'
-            in_cart = True
+            }, status=400)
 
-        elif action == 'remove':
-            if product.remove_from_cart(request.user):
-                message = 'Product removed from cart successfully'
-                in_cart = False
-            else:
-                message = 'Product was not in the cart'
-                in_cart = False
-
+        product.add_to_cart(request.user, quantity)
         return JsonResponse({
             'status': 'success',
-            'message': message,
-            'in_cart': in_cart
+            'message': 'Product added to cart successfully',
+            'in_cart': True
         })
 
-class FavoriteView(View, LoginRequiredMixin):
-    def get(self, request):
-        fav_items = Favorite.objects.filter(user=request.user)
-        if not fav_items:
-            return JsonResponse({'status': 'success', 'fav': []})
+    def delete(self, request, *args, **kwargs):
+        product_id = kwargs.get("pk") 
 
+        if not product_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Product ID is required'
+            }, status=400)
+
+        product = get_object_or_404(Product, id=product_id)
+        
+        if product.remove_from_cart(request.user):
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Product removed from cart successfully',
+                'in_cart': False
+            })
+        
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Product was not in the cart',
+            'in_cart': False
+        }, status=404)
+
+class FavoriteView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        favorites = Favorite.objects.filter(user=request.user)
+        if not favorites:
+            return JsonResponse({'status': 'success', 'fav': []})
+        
         fav_data = []
-        for fav_item in fav_items:
+        for fav_item in favorites:
             for product in fav_item.product.all(): 
                 fav_data.append({
                     'id': product.id,
                     'title': product.title,
                     'price': product.price,
                 })
-
+        
         return JsonResponse({
             'status': 'success',
             'fav': fav_data,
         })
 
     def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        product_id = data.get('product_id')
-        action = data.get('action')
+        product_id = kwargs.get("pk") 
 
-        if not product_id or action not in ['add', 'remove']:
+        if not product_id:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid request parameters'
+                'message': 'Product ID is required'
             }, status=400)
 
         product = get_object_or_404(Product, id=product_id)
+        
+        if product.in_favorites_of(request.user):
+            return JsonResponse({
+                'status': 'error',
+                'message': "Already in favorites",
+                'in_favorites': True
+            }, status=400)
 
-        if action == 'add':
-            product.add_to_favorites(request.user)
-            message = 'Product added to favorites successfully'
-            is_in_favorites = True
-
-        elif action == 'remove':
-            product.remove_from_favorites(request.user)
-            message = 'Product removed from favorites successfully'
-            is_in_favorites = False
-
+        product.add_to_favorites(request.user)
         return JsonResponse({
             'status': 'success',
-            'message': message,
-            'in_favorites': is_in_favorites
+            'message': 'Product added to favorites successfully',
+            'in_favorites': True
         })
+
+    def delete(self, request, *args, **kwargs):
+        product_id = kwargs.get("pk") 
+
+        if not product_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Product ID is required'
+            }, status=400)
+
+        product = get_object_or_404(Product, id=product_id)
+        
+        if product.remove_from_favorites(request.user):
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Product removed from favorites successfully',
+                'in_favorites': False
+            })
+        
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Product was not in favorites',
+            'in_favorites': False
+        }, status=404)
+
+class CheckoutView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        cart_items = Cart.objects.filter(user=request.user)
+        
+        cart_data = [{
+            'product': item.product,
+            'id': item.product.id,
+            'title': item.product.title,
+            'price': item.product.price,
+            'quantity': min(item.quantity, item.product.quantity),
+        } for item in cart_items]
+
+        return render(request, 'product/checkout.html', {'cart_data': cart_data})
+
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        address = data.get('address')
+        items = data.get('items')
+
+        user = request.user
+
+        for item in items:
+            product = Product.objects.get(id=item['id'])
+            Order.create(product, user, address, item['quantity'])
+        return redirect(reverse_lazy('checkout'))  
+        # return JsonResponse({"status": "success", "message": "Checkout processed successfully"})
+
+class PurchaseView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        orders = Order.objects.filter(user=user)
+        for order in orders:
+            order.complete(request.POST.get('address'))
+            cart = Cart.objects.get(user=user, product=order.product)
+            cart.complete(order.quantity)
+        return redirect(reverse_lazy('checkout'))  
+        # return JsonResponse({"status": "success", "message": "Purchased successfully"})
