@@ -106,6 +106,15 @@
           role="status"
         ></span>
       </button>
+
+      <form class="p-0 my-2" method="GET" action="{% url 'product:checkout' %}">
+        <input value="direct" name="checkout_type" hidden>
+        <input value="{{ product.id }}" name="product_id" hidden>
+        <button class="btn btn-success w-100">
+            Buy Now
+        </button>
+      </form>
+
       {% else %}
       <a type="button" class="btn btn-primary btn-lg" href="/user/login/">Login to buy product</a>
       {% endif %}

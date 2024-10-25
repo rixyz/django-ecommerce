@@ -1,11 +1,18 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from user.models import User
+from user.models import User, Location
+from enum import Enum
 
 def file_size(value):
     limit = 10 * 1024 * 1024
     if value.size > limit:
         raise ValidationError('File too large. Size should not exceed 10 MB.')
+
+class DateModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 class Category(models.Model):
     title = models.TextField()
@@ -87,12 +94,11 @@ class Cart(models.Model):
     def __str__(self):
         return f"{self.quantity} {self.product.title} ({self.product.id}) - {self.user.first_name}"
 
-class Order(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+class Order(DateModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    address = models.ForeignKey(Location, on_delete=models.CASCADE)
     is_paid = models.BooleanField(default=False)
-    address = models.TextField()
-    quantity = models.PositiveIntegerField(default=1)
+    is_deleted = models.BooleanField(default=False)
 
     @classmethod
     def create(cls,product, user, address, quantity):
@@ -112,9 +118,36 @@ class Order(models.Model):
             return True
         else:
             return False
-    
+
+class ProductOrder(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField() 
+
     def __str__(self):
-        return f"{self.quantity} {self.product.title} ({self.product.id}) - {self.user.first_name}"
+        return f"{self.product} - {self.quantity}"
+
+class PaymentHistory(DateModel):
+    class TransactionStatus(models.TextChoices):
+        INITIATE = 'INITIATE', 'Initiate'
+        COMPLETE = 'COMPLETE', 'Complete'
+        FAIL = 'FAIL', 'Fail'
+
+    class TransactionType(models.TextChoices):
+        ESEWA = 'ESEWA', 'Esewa'
+        KHALTI = 'KHALTI', 'Khalti'
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment')
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='buyer_payment_histories')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_payment_histories')
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    transaction_id = models.TextField()
+    transaction_response = models.JSONField(null=True)
+    transaction_status = models.CharField(choices=TransactionStatus.choices)
+    transaction_type = models.CharField(choices=TransactionType.choices)
+
+    def __str__(self):
+        return f'({self.id}) {self.transaction_type} {self.buyer.id} {self.seller.id} {self.order}'
     
     
 class Favorite(models.Model):

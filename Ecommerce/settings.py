@@ -11,8 +11,20 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-from django.contrib.messages import constants as messages
+import environ
 import os
+
+from django.contrib.messages import constants as messages
+
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+environ.Env.read_env()
+
+
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 MESSAGE_TAGS = {
     messages.ERROR: 'error',
@@ -21,15 +33,11 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',
 }
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%)*r-00vnymgs0^+s$jk&yz*4(k0m^e+o1f!-i5%b&mv(93io1'
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -90,11 +98,11 @@ WSGI_APPLICATION = 'Ecommerce.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': "ecommerce",
-        'USER': "postgres",
-        'PASSWORD': "admin",
-        'HOST': "127.0.0.1", 
-        'PORT': "5432",
+        'NAME': env("DB_NAME"),
+        'USER': env("DB_USER"),
+        'PASSWORD': env("DB_PASSWORD"),
+        'HOST': env("DB_HOST"), 
+        'PORT': env("DB_PORT"),
     }
 }
 
@@ -146,3 +154,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user.User'
 
 LOGOUT_REDIRECT_URL = '/'
+
+TRANSACTION_REDIRECT_URL=env('TRANSACTION_REDIRECT_URL')
+KHALTI_URL=env('KHALTI_URL')
+KHALTI_LOOKUP_URL=env('KHALTI_LOOKUP_URL')
+KHALTI_AUTH=env('KHALTI_AUTH')

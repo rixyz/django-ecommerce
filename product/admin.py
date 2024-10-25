@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User
-from product.models import Product, ProductImage, Cart, Favorite, Category, Order
+from product.models import Product, ProductImage, Cart, Favorite, Category, Order, ProductOrder, PaymentHistory
 from django.utils.html import format_html, format_html_join
 
 class ProductChangeList(ChangeList):
@@ -75,3 +75,5 @@ admin.site.register(ProductImage)
 admin.site.register(Cart)
 admin.site.register(Favorite)
 admin.site.register(Order)
+admin.site.register(ProductOrder)
+admin.site.register(PaymentHistory)

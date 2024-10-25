@@ -4,10 +4,13 @@ from django.urls import reverse_lazy
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.http import JsonResponse
+import requests
 import json
+from django.conf import settings
 
 from product.forms import ProductForm
-from product.models import Product, Category, ProductImage, Cart, Favorite, Order
+from product.models import Product, Category, ProductImage, Cart, Favorite, Order, ProductOrder, PaymentHistory
+from user.models import Location
 
 class ProductView(View):
     def get(self, request, *args, **kwargs):
@@ -55,7 +58,7 @@ class ProductCreateView(LoginRequiredMixin, View):
             for image in images:
                 ProductImage.objects.create(product=product, image=image)
 
-            return redirect(reverse_lazy('home'))  
+            return redirect('product:product-home')  
         
         categories = Category.objects.all()
         messages.error("AN ERROR OCCURED")
@@ -229,38 +232,227 @@ class FavoriteView(LoginRequiredMixin, View):
 
 class CheckoutView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        cart_items = Cart.objects.filter(user=request.user)
-        
-        cart_data = [{
-            'product': item.product,
-            'id': item.product.id,
-            'title': item.product.title,
-            'price': item.product.price,
-            'quantity': min(item.quantity, item.product.quantity),
-        } for item in cart_items]
+        user = request.user
+        checkout_type = request.GET.get('checkout_type', 'cart') 
+        product_id = request.GET.get('product_id')
+        quantity = int(request.GET.get('quantity', 1))
+              
+        if checkout_type == 'direct' and product_id:
+            product = get_object_or_404(Product, id=product_id)
+            
+            if quantity <= 0 or quantity > product.quantity:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Invalid quantity"
+                }, status=400)
+            
+            cart_data = [{
+                'id': product.id,
+                'title': product.title,
+                'price': product.price,
+                'quantity': min(quantity, product.quantity),
+                'item_total': product.price * quantity
+            }]
+            
+        else:
+            cart_items = Cart.objects.filter(user=user)
+            if not cart_items.exists():
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Cart is empty"
+                }, status=400)
+            
+            cart_data = [{
+                'id': item.product.id,
+                'title': item.product.title,
+                'price': item.product.price,
+                'quantity': min(item.quantity, item.product.quantity),
+                'item_total': item.product.price * min(item.quantity, item.product.quantity)
+            } for item in cart_items]
 
-        return render(request, 'product/checkout.html', {'cart_data': cart_data})
+        total_price = sum(item['item_total'] for item in cart_data)
+            
+        order = Order.objects.create(
+            user=user,
+            is_paid=False,
+            address=user.address,
+        )
+        
+        for item in cart_data:  
+            product = Product.objects.get(id=item['id'])                
+            product_order = ProductOrder.objects.create(
+                product=product,
+                quantity=item['quantity'],
+                order=order
+            )
+
+        locations = Location.objects.all()
+        
+        context = {
+            'cart_data': cart_data,
+            'total_price': total_price,
+            'locations': locations,
+            'order_id': order.id,
+            'checkout_type': checkout_type
+        }
+            
+        return render(request, 'product/checkout.html', context)
 
     def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        address = data.get('address')
-        items = data.get('items')
-
         user = request.user
+        address_id = request.POST.get('address')
+        payment = request.POST.get('payment')
+        order_id = request.POST.get('order_id')
+        payment = "Khalti"
+        
+        try:
+            location = Location.objects.get(id=address_id)
+        except Location.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid location selected"
+            }, status=400)
 
-        for item in items:
-            product = Product.objects.get(id=item['id'])
-            Order.create(product, user, address, item['quantity'])
-        return redirect(reverse_lazy('checkout'))  
-        # return JsonResponse({"status": "success", "message": "Checkout processed successfully"})
+        order = Order.objects.get(id=order_id)
+        
+        total_amount = 0
+        product_details = []
+        product_order = ProductOrder.objects.filter(order=order)
+        
+        for product_order in product_order.all():
+            product = product_order.product
+            quantity = product_order.quantity
+            
+            if quantity > product.quantity:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Insufficient stock for {product.title}"
+                }, status=400)
+            
+            item_total = product.price * 100 * quantity
+            total_amount += item_total
+            purchase_history = PaymentHistory.objects.create(
+                seller=product_order.product.seller,
+                buyer=user,
+                amount=product_order.quantity * product_order.product.price,
+                order=order,
+                transaction_status="INITIATE",
+                transaction_type=payment.upper()
+            )
+            
+            product_details.append({
+                "identity": str(product.id),
+                "name": product.title,
+                "total_price": item_total,
+                "quantity": quantity,
+                "unit_price": product.price * 100
+            })
+
+        order.address = location
+        order.save()
+
+        payment_data = {
+            "return_url": settings.TRANSACTION_REDIRECT_URL,
+            "website_url": "https://example.com/",
+            "amount": total_amount,
+            "purchase_order_id": order.id,
+            "purchase_order_name": f"Order #{order.id}",
+            "customer_info": {
+                "name": "Khalti Bahadur",
+                "email": "example@gmail.com",
+                "phone": "9800000123"
+            },
+            "amount_breakdown": [
+                {
+                    "label": "Mark Price",
+                    "amount": total_amount
+                },
+                {
+                    "label": "VAT",
+                    "amount": 0
+                }
+            ],
+            "product_details": product_details,
+            "merchant_username": "merchant_name",
+            "merchant_extra": "merchant_extra"
+        }
+
+        url = settings.KHALTI_URL
+        headers = {
+            'Authorization': settings.KHALTI_AUTH,
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.request(
+            "POST",
+            url,
+            headers=headers,
+            data=json.dumps(payment_data)
+        )
+        
+        data = response.json()
+        transaction_id = data['pidx']
+
+        PaymentHistory.objects.filter(order=order).update(transaction_response=data)
+        PaymentHistory.objects.filter(order=order).update(transaction_id=transaction_id)
+        
+        return redirect(data['payment_url'])
 
 class PurchaseView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        orders = Order.objects.filter(user=user)
-        for order in orders:
-            order.complete(request.POST.get('address'))
-            cart = Cart.objects.get(user=user, product=order.product)
-            cart.complete(order.quantity)
-        return redirect(reverse_lazy('checkout'))  
-        # return JsonResponse({"status": "success", "message": "Purchased successfully"})
+    def get(self, request, *args, **kwargs):
+        pidx = request.GET.get('pidx', '')
+        url = settings.KHALTI_LOOKUP_URL
+        payload = json.dumps({
+            "pidx": pidx
+        })
+        print(settings.KHALTI_AUTH)
+        headers = {
+            'Authorization': f'key {settings.KHALTI_AUTH}',
+            'Content-Type': 'application/json',
+        }
+        response = requests.request("POST", url, headers=headers, data=payload)
+        if not response.status_code == 200:
+            print(response)
+            messages.info(request, "ERROR")
+            return render(request, 'product/payment.html')
+        data = response.json()
+
+        if not data['status'] == "Completed":
+            print(data)
+            messages.info(request, "ERROR")
+            return render(request, 'product/payment.html')
+        
+        payment = PaymentHistory.objects.filter(transaction_id=data['pidx']).first()
+        order = payment.order
+        if order.is_paid:
+            messages.info(request, "Already Paid")
+            return render(request, 'product/payment.html')
+        
+        product_order = ProductOrder.objects.filter(order=order)
+        for product_order in product_order.all():
+            product = product_order.product
+            quantity = product_order.quantity
+
+            if product.quantity < quantity:
+                raise ValueError(f"Insufficient inventory for {product.title}")
+            product.quantity -= quantity
+            product.save()
+
+            cart = Cart.objects.filter(
+                user=request.user, 
+                product=product
+            ).first()
+            
+            if cart:
+                cart.complete(quantity)
+
+            order.is_paid = True
+            order.save()
+
+        payments = PaymentHistory.objects.filter(transaction_id=data['pidx'])
+        for payment in payments:
+            payment.transaction_status = "COMPLETE"
+            
+        messages.success(request, f"Payment {data["status"]}")
+        return render(request, 'product/payment.html')
+        
