@@ -26,9 +26,15 @@ class CustomUserModel(BaseUserManager):
             **extra_fields
         )
 
+class Location(models.Model):
+    title = models.TextField()
+
+    def __str__(self):
+        return self.title
+
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    address = models.CharField(max_length=255)
+    address = models.ForeignKey(Location, on_delete=models.CASCADE, null=True)
     username = None
     
     USERNAME_FIELD = 'email'
