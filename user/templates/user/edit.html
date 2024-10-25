@@ -1,0 +1,174 @@
+{% extends 'product/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h3>Edit Profile</h3>
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-9 personal-info">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <h4>Personal info</h4>
+            <form id="updateProfileForm" class="form-horizontal">
+                <div class="form-group">
+                    <div class="d-flex justify-content-start">
+                        <div class="me-3">
+                            <label>First name:</label>
+                            <div class="col-lg-8">
+                                <input class="form-control" type="text" id="firstName" value="{{ user.first_name }}">
+                            </div>
+                        </div>
+                        <div>
+                            <label>Last name:</label>
+                            <div class="col-lg-8">
+                                <input class="form-control" type="text" id="lastName" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>Email:</label>
+                    <div class="col-lg-8">
+                        <input class="form-control" type="email" id="email" value="{{ user.email }}">
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>Address:</label>
+                    <div class="col-lg-8">
+                        <select class="form-select" id="location">
+                            <option value="">Select location</option>
+                            {% for location in locations %}
+                                <option value="{{ location.id }}" {% if user.address.id == location.id %}selected{% endif %}>
+                                    {{ location.title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <div class="col-md-8">
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </div>
+                </div>
+            </form>
+
+            <h4 class="mt-4">Update Password</h4>
+            <form id="updatePasswordForm" class="form-horizontal">
+                <div class="form-group mt-3">
+                    <label>Password:</label>
+                    <div class="col-md-8">
+                        <input class="form-control" type="password" id="password">
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label>Confirm password:</label>
+                    <div class="col-md-8">
+                        <input class="form-control" type="password" id="confirmPassword">
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <div class="col-md-8">
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function sendPutRequest(url, data) {
+      return fetch(url, {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}',
+          },
+          body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.status === 'success') {
+              showAlert('success', data.message);
+          } else {
+              showAlert('danger', data.message);
+          }
+          return data;
+      })
+      .catch(error => {
+          showAlert('danger', 'An error occurred. Please try again.');
+          console.error('Error:', error);
+      });
+  }
+
+  function showAlert(type, message) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+      alertDiv.role = 'alert';
+      alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      const container = document.querySelector('.personal-info');
+      container.insertBefore(alertDiv, container.firstChild);
+      
+      setTimeout(() => {
+          alertDiv.remove();
+      }, 5000);
+  }
+
+  document.getElementById('updateProfileForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const data = {
+          first_name: document.getElementById('firstName').value,
+          last_name: document.getElementById('lastName').value,
+          email: document.getElementById('email').value,
+          location: document.getElementById('location').value
+      };
+
+      sendPutRequest("{% url 'edit-profile' %}", data);
+  });
+
+  document.getElementById('updatePasswordForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password !== confirmPassword) {
+          showAlert('danger', 'Passwords do not match');
+          return;
+      }
+
+      const data = {
+          password: password,
+          confirm_password: confirmPassword
+      };
+
+      sendPutRequest("{% url 'edit-password' %}", data)
+          .then(data => {
+              if (data.status === 'success') {
+                  document.getElementById('password').value = '';
+                  document.getElementById('confirmPassword').value = '';
+              }
+          });
+  });
+});
+</script>
+{% endblock %}

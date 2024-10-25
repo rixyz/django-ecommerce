@@ -21,16 +21,19 @@ from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView
 
 from product.views import ProductView
-
-admin.site.site_header = 'Ecommerce Header'
+from user.views import Login, Register, Profile, EditProfile, EditPassword
 
 urlpatterns = [
     path('', ProductView.as_view(), name='home'),
     path('admin/', admin.site.urls),
-    path('user/', include('user.urls')),
     path('shop/', include('product.urls')),
 
-    path('logout/', LogoutView.as_view(template_name='product/index.html'), name='logout'),
+    path('register/', Register.as_view(), name='user-register'),
+    path('login/', Login.as_view(), name='user-login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('profile/', Profile.as_view(), name='profile'),
+    path('profile/edit/', EditProfile.as_view(), name='edit-profile'),
+    path('profile/password/edit/', EditPassword.as_view(), name='edit-password'),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
