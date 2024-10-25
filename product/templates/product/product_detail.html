@@ -30,8 +30,10 @@
 
     <div class="col-lg-4 text-right">
       <h3 class="text-muted" id="totalPrice">Price: ${{ product.price }}</h3>
+      <p><strong>Category:</strong> {{ product.category.title }}</p>
+      <p><strong>Seller:</strong> {{ product.seller.email }}</p>
       <p><strong>Quantity Available:</strong> {{ product.quantity }}</p>
-      {% if user.is_authenticated %}
+      {% if user.is_authenticated and product.quantity > 0 %}
       <div class="input-group">
         <span class="input-group-btn">
           <button
@@ -63,15 +65,11 @@
           </button>
         </span>
       </div>
-      {% endif %}
-      <p><strong>Category:</strong> {{ product.category.title }}</p>
-      <p><strong>Seller:</strong> {{ product.seller.get_full_name }}</p>
-      {% if user.is_authenticated %}
       <button
-        id="cartButton"
-        class="btn w-100 mb-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
-        data-product-id="{{ product.id }}"
-        data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
+      id="cartButton"
+      class="btn w-100 my-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
+      data-product-id="{{ product.id }}"
+      data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
       >
         <span class="button-text">
           {% if product|cart_of:user %} Remove from Cart {% else %} Add to Cart
@@ -82,7 +80,17 @@
           role="status"
         ></span>
       </button>
+      {% else %}
+        <input
+        hidden
+        type="number"
+        id="quantity"
+        name="quantity"
+        value="1"
+      />
 
+      {% endif %}
+      {% if user.is_authenticated %}
       <button
         id="favoriteButton"
         class="btn w-100 {% if product in request.user.favorite.product.all %}btn-danger{% else %}btn-secondary{% endif %}"

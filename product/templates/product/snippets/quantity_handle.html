@@ -1,133 +1,132 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-      const pricePerUnit = {{ product.price }};
+    const pricePerUnit = {{ product.price }};
 
-      function updateTotalPrice(quantity) {
-          const totalPrice = (pricePerUnit * quantity).toFixed(2);
-          $("#totalPrice").text(`Total Price: $${totalPrice}`);
-      }
+    function updateTotalPrice(quantity) {
+        const totalPrice = (pricePerUnit * quantity).toFixed(2);
+        $("#totalPrice").text(`Total Price: $${totalPrice}`);
+    }
 
-  function toggleItemAPI(productId, type, action, quantity = 1) {
-      const url = `/shop/${type}/${action}/${productId}/`;
-      const method = action === "add" ? "POST" : "DELETE";
+    function toggleItemAPI(productId, type, action, quantity = 1) {
+        const url = `/shop/${type}/${action}/${productId}/`;
+        const method = action === "add" ? "POST" : "DELETE";
 
-      return $.ajax({
-          url: url,
-          type: method,
-          data: JSON.stringify({ quantity }),
-          headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
-          },
-          contentType: "application/json"
-      });
-  }
+        return $.ajax({
+            url: url,
+            type: method,
+            data: JSON.stringify({ quantity }),
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            contentType: "application/json"
+        });
+    }
 
-  function updateCartButton($button, isInCart) {
-      const $buttonText = $button.find(".button-text");
-      $buttonText.text(isInCart ? "Remove from Cart" : "Add to Cart");
-      $button.data("in-cart", isInCart);
-      $button.toggleClass("btn-primary btn-danger");
-  }
+    function updateCartButton($button, isInCart) {
+        const $buttonText = $button.find(".button-text");
+        $buttonText.text(isInCart ? "Remove from Cart" : "Add to Cart");
+        $button.data("in-cart", isInCart);
+        $button.toggleClass("btn-primary btn-danger");
+    }
 
-  function updateFavoritesButton($button, isInFavorites) {
-      const $buttonText = $button.find(".button-text");
-      $buttonText.text(isInFavorites ? "♥ Remove from Favorites" : "♡ Add to Favorites");
-      $button.data("in-favorites", isInFavorites);
-      $button.toggleClass("btn-secondary btn-danger");
-  }
+    function updateFavoritesButton($button, isInFavorites) {
+        const $buttonText = $button.find(".button-text");
+        $buttonText.text(isInFavorites ? "♥ Remove from Favorites" : "♡ Add to Favorites");
+        $button.data("in-favorites", isInFavorites);
+        $button.toggleClass("btn-secondary btn-danger");
+    }
 
-  function toggleLoadingState($button, isLoading) {
-      const $buttonText = $button.find(".button-text");
-      const $spinner = $button.find(".spinner-border");
+    function toggleLoadingState($button, isLoading) {
+        const $buttonText = $button.find(".button-text");
+        const $spinner = $button.find(".spinner-border");
 
-      if (isLoading) {
-          $buttonText.addClass("d-none");
-          $spinner.removeClass("d-none");
-          $button.prop("disabled", true);
-      } else {
-          $buttonText.removeClass("d-none");
-          $spinner.addClass("d-none");
-          $button.prop("disabled", false);
-      }
-  }
+        if (isLoading) {
+            $buttonText.addClass("d-none");
+            $spinner.removeClass("d-none");
+            $button.prop("disabled", true);
+        } else {
+            $buttonText.removeClass("d-none");
+            $spinner.addClass("d-none");
+            $button.prop("disabled", false);
+        }
+    }
 
-  function toggleItem($button, type) {
-      const productId = $button.data("product-id");
-      const isInItem = $button.data(type === "cart" ? "in-cart" : "in-favorites") === true;
-      const action = isInItem ? "remove" : "add";
-      const quantity = parseInt($("#quantity").val());
+    function toggleItem($button, type) {
+        const productId = $button.data("product-id");
+        const isInItem = $button.data(type === "cart" ? "in-cart" : "in-favorites") === true;
+        const action = isInItem ? "remove" : "add";
+        const quantity = parseInt($("#quantity").val());
 
-      toggleLoadingState($button, true);
+        toggleLoadingState($button, true);
 
-      toggleItemAPI(productId, type, action, quantity)
-          .done(function(response) {
-              if (type === "cart") {
-                  updateCartCount();
-                  updateCartButton($button, !isInItem);
-              } else {
-                  updateFavCount();
-                  updateFavoritesButton($button, !isInItem);
-              }
-          })
-          .fail(function(xhr, status, error) {
-              console.error("Error:", error);
-              if (type === "cart") {
-                  updateCartButton($button, isInItem);
-              } else {
-                  updateFavoritesButton($button, isInItem);
-              }
-          })
-          .always(function() {
-              toggleLoadingState($button, false);
-          });
-  }
+        toggleItemAPI(productId, type, action, quantity)
+            .done(function(response) {
+                if (type === "cart") {
+                    updateCartCount();
+                    updateCartButton($button, !isInItem);
+                } else {
+                    updateFavCount();
+                    updateFavoritesButton($button, !isInItem);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error("Error:", error);
+                if (type === "cart") {
+                    updateCartButton($button, isInItem);
+                } else {
+                    updateFavoritesButton($button, isInItem);
+                }
+            })
+            .always(function() {
+                toggleLoadingState($button, false);
+            });
+    }
 
-      document.getElementById('quantity').oninput = function () {
-          var max = parseInt(this.max);
-          var min = parseInt(this.min);
-          if (parseInt(this.value) > max) {
-              this.value = max;
-          }
-          if (parseInt(this.value) < parseInt(this.min)) {
-              this.value = min;
-          }
-          updateTotalPrice(this.value)
-      }
+    document.getElementById('quantity').oninput = function () {
+        var max = parseInt(this.max);
+        var min = parseInt(this.min);;
+        if (parseInt(this.value) > max) {
+            this.value = max;
+        }
+        if (parseInt(this.value) < parseInt(this.min)) {
+            this.value = min;
+        }
+        if (max == 0 ) this.value = 0
+        updateTotalPrice(this.value)
+    }
 
-      $(document).ready(function() {
+    $(document).ready(function() {
         let quantity = 1;
         updateTotalPrice(quantity);
         $(".quantity-right-plus").click(function (e) {
-          e.preventDefault();
-          quantity = parseInt($("#quantity").val());
-          quantity += 1;
-          if (quantity > {{ product.quantity }}) {
+            e.preventDefault();
+            quantity = parseInt($("#quantity").val());
+            quantity += 1;
+            if (quantity > {{ product.quantity }}) {
             quantity = {{ product.quantity }};
-          }
-          $("#quantity").val(quantity);
-          updateTotalPrice(quantity);
+            }
+            $("#quantity").val(quantity);
+            updateTotalPrice(quantity);
         });
 
         $(".quantity-left-minus").click(function (e) {
-          e.preventDefault();
-          quantity = parseInt($("#quantity").val());
-          quantity -= 1;
-          if (quantity <= 0) {
+            e.preventDefault();
+            quantity = parseInt($("#quantity").val());
+            quantity -= 1;
+            if (quantity <= 0) {
             quantity = 1;
-          }
-          $("#quantity").val(quantity);
-          updateTotalPrice(quantity);
+            }
+            $("#quantity").val(quantity);
+            updateTotalPrice(quantity);
         });
 
         $("#cartButton").click(function () {
-          toggleItem($(this), "cart");
+            toggleItem($(this), "cart");
         });
 
         $("#favoriteButton").click(function () {
-              toggleItem($(this), "favorite");
+                toggleItem($(this), "favorite");
         });
-
-
 
     });
 </script>

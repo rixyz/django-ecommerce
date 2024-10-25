@@ -31,7 +31,7 @@
             <div class="card-body banner-content py-4">
               <h5 class="card-title element-title text-uppercase">
                 <a
-                  href="{% url 'product-detail' product.id %}"
+                  href="{% url 'product:detail' product.id %}"
                   class="item-anchor text-decoration-none"
                 >
                   {{ product.title }}
@@ -40,7 +40,7 @@
               <p class="card-text">{{ product.description }}</p>
               <div class="btn-left mt-3">
                 <a
-                  href="{% url 'product-detail' product.id %}"
+                  href="{% url 'product:detail' product.id %}"
                   class="btn btn-primary fs-6 text-uppercase text-decoration-none"
                 >
                   Buy

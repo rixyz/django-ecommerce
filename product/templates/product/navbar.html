@@ -82,7 +82,7 @@
 
         <ul class="list-unstyled d-flex m-0">
           <li class="d-none d-lg-block">
-            <a href="{% url 'product-create' %}" class="text-uppercase mx-3"
+            <a href="{% url 'product:create' %}" class="text-uppercase mx-3"
               >Add Item</a
             >
           </li>
@@ -108,30 +108,30 @@
               </svg>
             </a>
           </li>
-          <li class="d-lg-none">
+          <li class="d-none d-lg-block">
             <a
-              href="#"
-              class="mx-2"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#offcanvasCart"
-              aria-controls="offcanvasCart"
+              href="{% url 'user:profile' %}"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <use xlink:href="#cart"></use>
-              </svg>
-            </a>
-          </li>
-          <li class="search-box" class="mx-2">
-            <a href="#search" class="search-button">
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <use xlink:href="#search"></use>
+              <svg 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                stroke="#212b36" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                fill="none"
+              >
+                <circle cx="12" cy="8" r="5" />
+                <path d="M3,21 h18 C 21,12 3,12 3,21"/>
               </svg>
             </a>
           </li>
           <li class="d-none d-lg-block">
-            <form method="post" action="{% url 'logout' %}" class="noform mx-2">
+            <form method="post" action="{% url 'user:logout' %}" class="noform mx-2">
               {% csrf_token %}
-              <button type="submit" class="btn btn-link">Logout</button>
+              <button type="submit" class="btn btn-link">
+                Logout</button>
             </form>
           </li>
         </ul>
@@ -140,13 +140,13 @@
         <a
           type="button"
           class="btn btn-primary btn-lg"
-          href="{% url 'user-login' %}"
+          href="{% url 'user:login' %}"
           >Login</a
         >
         <a
           type="button"
           class="btn btn-secondary btn-lg"
-          href="{% url 'user-register' %}"
+          href="{% url 'user:register' %}"
           >Register</a
         >
         {% endif %}

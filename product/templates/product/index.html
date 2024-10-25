@@ -18,7 +18,7 @@
         <div class="swiper-wrapper d-flex border-animation-left">
           {% for item in products %}
           <div class="swiper-slide"> 
-            <a href="{% url 'product-detail' item.product.id %}">
+            <a href="{% url 'product:detail' item.product.id %}">
               <div class="banner-item image-zoom-effect">
                 <div class="image-holder">
                     {% if item.first_image %}
@@ -30,7 +30,7 @@
                 </div>
                 <div class="banner-content py-4">
                   <h5 class="element-title text-uppercase">
-                    <a href="{% url 'product-detail' item.product.id %}" class="item-anchor"
+                    <a href="{% url 'product:detail' item.product.id %}" class="item-anchor"
                       >{{ item.product.title }}</a
                     >
                   </h5>
@@ -39,7 +39,7 @@
                   </p>
                   <div class="btn-left">
                   </a>
-                    <a href="{% url 'product-detail' item.product.id %}"
+                    <a href="{% url 'product:detail' item.product.id %}"
                       class="btn-link fs-6 text-uppercase item-anchor text-decoration-none"
                       >Buy</a
                     >
@@ -85,7 +85,7 @@
             <div class="image-holder position-relative">
               <div class="product-content">
                 <h5 class="text-uppercase fs-5 mt-3">
-                  <a href={% url 'category' category.id %}>{{ category.title }}</a>
+                  <a href={% url 'product:category' category.id %}>{{ category.title }}</a>
                 </h5>
               </div>
             </div>
