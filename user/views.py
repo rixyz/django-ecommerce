@@ -2,8 +2,9 @@ from django.views import View
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.urls import reverse
 import json
 
 from product.models import Cart, Favorite
@@ -40,7 +41,7 @@ class Register(View):
         if form.is_valid():
             user = form.save()
             messages.success(request, 'Registration successful! Please login with your credentials.')
-            return redirect('user-login')
+            return redirect('user:login')
         else:
             messages.error(request, 'Registration failed. Please check the errors below.')
         return render(request, self.template_name, {'form': form})
@@ -54,7 +55,6 @@ class Profile(View):
         favorites = Favorite.objects.filter(user=user)
 
         return render(request, self.template_name, {'cart': carts, 'favorite': favorites})
-
 
 class EditProfile(LoginRequiredMixin, View):
     template_name = 'user/edit.html'
@@ -72,12 +72,10 @@ class EditProfile(LoginRequiredMixin, View):
             data = json.loads(request.body)
             user = request.user
             
-            # Update user fields
             user.first_name = data.get('first_name', user.first_name)
             user.last_name = data.get('last_name', user.last_name)
             user.email = data.get('email', user.email)
             
-            # Update location if provided
             location_id = data.get('location')
             if location_id:
                 try:
@@ -110,42 +108,20 @@ class EditProfile(LoginRequiredMixin, View):
 class EditPassword(LoginRequiredMixin, View):
     template_name = 'user/edit.html'
     
-    def put(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            user = request.user
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        data = request.POST
+        
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+        
+        if not password or not confirm_password:
+            messages.error(request,"Both password fields are required")
+            return redirect('user:edit-password')
             
-            password = data.get('password')
-            confirm_password = data.get('confirm_password')
-            
-            if not password or not confirm_password:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Both password fields are required'
-                }, status=400)
-                
-            if password != confirm_password:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Passwords do not match'
-                }, status=400)
-            
-            # Set new password
-            user.set_password(password)
-            user.save()
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Password updated successfully'
-            })
-            
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid data format'
-            }, status=400)
-        except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=500)
+        if password != confirm_password:
+            messages.error(request,"Passwords do not match")
+            return redirect('user:edit-password')
+        user.set_password(password)
+        user.save()
+        return redirect('user:edit-password')

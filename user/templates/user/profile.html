@@ -13,7 +13,7 @@
               <h5 class="my-3">{{ user.get_full_name }}</h5>
               <p class="text-muted mb-4">{{ user.address }}</p>
               <div class="d-flex justify-content-center mb-2">
-                <a href="{% url 'edit-profile' %}" class="btn btn-primary">Edit</a>
+                <a href="{% url 'user:edit-profile' %}" class="btn btn-primary">Edit</a>
                 {% comment %} <button  type="button" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary ms-1">Message</button> {% endcomment %}
               </div>
             </div>

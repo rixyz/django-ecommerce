@@ -64,18 +64,19 @@
             </form>
 
             <h4 class="mt-4">Update Password</h4>
-            <form id="updatePasswordForm" class="form-horizontal">
+            <form  class="form-horizontal" method="POST" action="{% url 'user:edit-password' %}" >
+                {% csrf_token %}
                 <div class="form-group mt-3">
                     <label>Password:</label>
                     <div class="col-md-8">
-                        <input class="form-control" type="password" id="password">
+                        <input class="form-control" type="password" id="password" name="password">
                     </div>
                 </div>
 
                 <div class="form-group mt-3">
                     <label>Confirm password:</label>
                     <div class="col-md-8">
-                        <input class="form-control" type="password" id="confirmPassword">
+                        <input class="form-control" type="password" id="confirmPassword" name="confirm_password">
                     </div>
                 </div>
 
@@ -91,7 +92,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  function sendPutRequest(url, data) {
+  function sendRequest(url, data) {
       return fetch(url, {
           method: 'PUT',
           headers: {
@@ -142,32 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
           location: document.getElementById('location').value
       };
 
-      sendPutRequest("{% url 'edit-profile' %}", data);
-  });
-
-  document.getElementById('updatePasswordForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
-
-      if (password !== confirmPassword) {
-          showAlert('danger', 'Passwords do not match');
-          return;
-      }
-
-      const data = {
-          password: password,
-          confirm_password: confirmPassword
-      };
-
-      sendPutRequest("{% url 'edit-password' %}", data)
-          .then(data => {
-              if (data.status === 'success') {
-                  document.getElementById('password').value = '';
-                  document.getElementById('confirmPassword').value = '';
-              }
-          });
+      sendRequest("{% url 'user:edit-profile' %}", data);
   });
 });
 </script>
