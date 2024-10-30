@@ -5,6 +5,6 @@ from product.models import Category
 class ProductForm(forms.Form):
     title = forms.CharField(max_length=255, required=True)  
     description = forms.CharField(widget=forms.Textarea, required=True)  
-    quantity = forms.IntegerField(required=True)  
+    quantity = forms.IntegerField(required=True, min_value=1)  
     category = forms.ModelChoiceField(queryset=Category.objects.all(), required=True)  
-    price = forms.IntegerField(required=True)
+    price = forms.IntegerField(required=True, min_value=1)

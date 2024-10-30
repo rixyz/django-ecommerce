@@ -1,7 +1,7 @@
 {% extends './base.html' %} {% load static %} {% load cart_extras %} 
 {% block title %}{{ product.title }}{% endblock %} 
 {% block content %}
-<div class="container ">
+<div class="container">
   <div class="row">
     <div class="col-lg-8">
       <h1 class="display-4">{{ product.title }}</h1>
@@ -15,7 +15,7 @@
               src="{{ image.image.url }}"
               class="img-fluid"
               alt="Image of {{ product.title }}"
-              style="max-width: 200px; height: auto;"
+              style="max-width: 200px; height: auto"
             />
           </div>
           {% endfor %}
@@ -66,10 +66,10 @@
         </span>
       </div>
       <button
-      id="cartButton"
-      class="btn w-100 my-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
-      data-product-id="{{ product.id }}"
-      data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
+        id="cartButton"
+        class="btn w-100 my-2 {% if product|cart_of:user %}btn-danger{% else %}btn-primary{% endif %}"
+        data-product-id="{{ product.id }}"
+        data-in-cart="{% if product|cart_of:user %}true{% else %}false{% endif %}"
       >
         <span class="button-text">
           {% if product|cart_of:user %} Remove from Cart {% else %} Add to Cart
@@ -81,16 +81,15 @@
         ></span>
       </button>
       {% else %}
-        <input
+      <input
         hidden
         type="number"
-        id="quantity"
+        id="quantity_direct"
         name="quantity"
         value="1"
       />
 
-      {% endif %}
-      {% if user.is_authenticated %}
+      {% endif %} {% if user.is_authenticated %}
       <button
         id="favoriteButton"
         class="btn w-100 {% if product in request.user.favorite.product.all %}btn-danger{% else %}btn-secondary{% endif %}"
@@ -108,20 +107,19 @@
       </button>
 
       <form class="p-0 my-2" method="GET" action="{% url 'product:checkout' %}">
-        <input value="direct" name="checkout_type" hidden>
-        <input value="{{ product.id }}" name="product_id" hidden>
-        <button class="btn btn-success w-100">
-            Buy Now
-        </button>
+        <input value="1" id="totalDirectPrice" name="quantity" hidden />
+        <input value="direct" name="checkout_type" hidden />
+        <input value="{{ product.id }}" name="product_id" hidden />
+        <button class="btn btn-success w-100">Buy Now</button>
       </form>
 
       {% else %}
-      <a type="button" class="btn btn-primary btn-lg" href="/user/login/">Login to buy product</a>
+      <a type="button" class="btn btn-primary btn-lg" href="/user/login/"
+        >Login to buy product</a
+      >
       {% endif %}
     </div>
   </div>
-
 </div>
 
-{% include 'product/snippets/quantity_handle.html' %} 
-{% endblock %}
+{% include 'product/snippets/quantity_handle.html' %} {% endblock %}

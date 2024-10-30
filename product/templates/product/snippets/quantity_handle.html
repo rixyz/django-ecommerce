@@ -5,6 +5,7 @@
     function updateTotalPrice(quantity) {
         const totalPrice = (pricePerUnit * quantity).toFixed(2);
         $("#totalPrice").text(`Total Price: $${totalPrice}`);
+        $("#totalDirectPrice").val(quantity);
     }
 
     function toggleItemAPI(productId, type, action, quantity = 1) {

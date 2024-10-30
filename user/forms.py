@@ -1,18 +1,25 @@
 # forms.py
 from django import forms
 from django.contrib.auth.hashers import make_password
-from .models import User
+from .models import Location, User
 
 class CustomRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput())
     confirm_password = forms.CharField(widget=forms.PasswordInput())
+    address = forms.ModelChoiceField(
+        queryset=Location.objects.all(),
+        empty_label="Select your location",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'locationSelect'
+        })
+    )
 
     class Meta:
         model = User
         fields = ['email', 'address', 'password']
         widgets = {
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-            'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Address'}),
         }
 
     def __init__(self, *args, **kwargs):

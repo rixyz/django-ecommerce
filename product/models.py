@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from Ecommerce.enums import TransactionStatus, TransactionType
 from user.models import User, Location
-from enum import Enum
 
 def file_size(value):
     limit = 10 * 1024 * 1024
@@ -128,15 +128,6 @@ class ProductOrder(models.Model):
         return f"{self.product} - {self.quantity}"
 
 class PaymentHistory(DateModel):
-    class TransactionStatus(models.TextChoices):
-        INITIATE = 'INITIATE', 'Initiate'
-        COMPLETE = 'COMPLETE', 'Complete'
-        FAIL = 'FAIL', 'Fail'
-
-    class TransactionType(models.TextChoices):
-        ESEWA = 'ESEWA', 'Esewa'
-        KHALTI = 'KHALTI', 'Khalti'
-
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment')
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='buyer_payment_histories')
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='seller_payment_histories')
@@ -151,8 +142,8 @@ class PaymentHistory(DateModel):
     
     
 class Favorite(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='favorite')
     product = models.ManyToManyField(Product, related_name='favorites')
-
+    
     def __str__(self):
         return f"Favorites for {self.user.first_name}"

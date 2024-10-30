@@ -2,9 +2,8 @@ from django.views import View
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.http import JsonResponse,HttpResponseRedirect
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from django.urls import reverse
 import json
 
 from product.models import Cart, Favorite
@@ -52,9 +51,11 @@ class Profile(View):
     def get(self, request, *args, **kwargs):
         user = request.user
         carts = Cart.objects.filter(user=user)
-        favorites = Favorite.objects.filter(user=user)
-
-        return render(request, self.template_name, {'cart': carts, 'favorite': favorites})
+        
+        favorite, created = Favorite.objects.get_or_create(user=user)
+        favorite_products = favorite.product.all()
+        
+        return render(request, self.template_name, {'cart': carts, 'favorite_products': favorite_products})
 
 class EditProfile(LoginRequiredMixin, View):
     template_name = 'user/edit.html'

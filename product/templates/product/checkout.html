@@ -1,71 +1,144 @@
-{% extends './base.html' %} {% load static %} 
-{% block title %} Checkout {%endblock %} 
-{% block content %}
-<section id="billboard" class="bg-light py-5">
-  <div class="container">
-    <div class="row justify-content-center">
-      <h1 class="section-title text-center mt-4" data-aos="fade-up">
-        {{category.title}}
-      </h1>
-    </div>
-    <div class="container">
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in cart_data %}
-          <tr>
-            <td>{{ item.title }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>${{ item.price }}</td>
-            <td>${{ item.item_total }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <h3>Total: ${{ total_price }}</h3>
+{% extends './base.html' %}
+{% load static %}
 
-      <form method="POST" action="{% url 'product:checkout' %}">
-        <input name="order_id" value="{{order_id}}" hidden type="text">
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<section class="bg-light py-5">
+  <div class="container" style="max-width: 1000px;">
+    <h1 class="text-center mb-5">Checkout</h1>
+    
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-4">Order Summary</h5>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+{% if cart_data %}
+            <tbody>
+              {% for item in cart_data %}
+              <tr>
+                <td>{{ item.title }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-end">${{ item.price }}</td>
+                <td class="text-end">${{ item.item_total }}</td>
+              </tr>
+              {% endfor %}
+              <tr>
+                <td colspan="3" class="text-end fw-bold">Total:</td>
+                <td class="text-end fw-bold">${{ total_price }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'product:checkout' %}" class="card shadow-sm">
+      <div class="card-body">
+        <input name="order_id" value="{{order_id}}" type="hidden">
         {% csrf_token %}
-        <div class="form-group">
-          <label class="col-lg-3 control-label">Shipping Address:</label>
-          <div class="col-lg-8">
-            <div class="ui-select">
-              <select name="address" id="address" class="form-control">
-                {% for location in locations %}
-                <option value="{{ location.id }}">{{ location.title }}</option>
-                {% endfor %}
-              </select>
+        
+        <div class="mb-4">
+          <label class="form-label fw-bold mb-3">Shipping Address</label>
+          <select name="address" id="address" class="form-select">
+            {% for location in locations %}
+            <option value="{{ location.id }}">{{ location.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-bold mb-3">Payment Method</label>
+          <div class="d-flex gap-4 payment-options">
+            <div class="payment-option">
+              <input class="form-check-input visually-hidden" type="radio" name="payment" value="khalti" id="khalti" required checked="checked">
+              <label class="payment-label" for="khalti">
+                <img src="https://seeklogo.com/images/K/khalti-logo-F0B049E67E-seeklogo.com.png" alt="Khalti" height="50"/>
+              </label>
+            </div>
+            <div class="payment-option">
+              <input class="form-check-input visually-hidden" type="radio" name="payment" value="esewa" id="esewa">
+              <label class="payment-label" for="esewa">
+                <img src="https://esewa.com.np/common/images/esewa_logo.png" alt="eSewa"/>
+              </label>
             </div>
           </div>
         </div>
-         <label class="form-label">Payment Method:</label>
-          <div class="form-check d-flex justify-content-start px-5 py-3">
-            <div>
-              <input class="form-check-input" type="radio" name="flexRadioDefault" id="khalti" required checked="checked" >
-              <label class="" for="flexRadioDefault2">
-                <img src="https://seeklogo.com/images/K/khalti-logo-F0B049E67E-seeklogo.com.png" height="50"/>
-              </label>
-            </div>
-            <div class="px-5">
-              <input class="form-check-input" type="radio" name="flexRadioDefault" id="esewa">
-              <label class="" for="flexRadioDefault1">
-                <img src="https://esewa.com.np/common/images/esewa_logo.png" />
-              </label>
-            </div>
 
-          </div>     
-        <button type="submit">Purchase Order</button>
-      </form>
-    </div>
+        <button type="submit" class="btn btn-primary w-100 py-3">Complete Purchase</button>
+      </div>
+    </form>
+{% else %}
+<tbody>
+  <tr>
+    <td class="text-center" colspan="4">Cart is empty</td>
+  </tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+{% endif %}
   </div>
 </section>
 
+<style>
+  .payment-option {
+    position: relative;
+  }
+  
+  .payment-label {
+    display: block;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .payment-label:hover {
+    border-color: #6c757d;
+  }
+  
+  .payment-label img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+  }
+  
+  input[type="radio"]:checked + .payment-label {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+  }
+  
+  .table > :not(caption) > * > * {
+    padding: 1rem;
+  }
+  
+  .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Make payment images clickable
+  const paymentLabels = document.querySelectorAll('.payment-label');
+  paymentLabels.forEach(label => {
+    label.addEventListener('click', function() {
+      const radio = this.parentElement.querySelector('input[type="radio"]');
+      radio.checked = true;
+    });
+  });
+});
+</script>
 {% endblock %}

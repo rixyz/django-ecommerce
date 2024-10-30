@@ -1,12 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.http import JsonResponse
+from django.conf import settings
 import requests
 import json
-from django.conf import settings
+import uuid
+import hmac
+import hashlib
+import base64
 
 from product.forms import ProductForm
 from product.models import Product, Category, ProductImage, Cart, Favorite, Order, ProductOrder, PaymentHistory
@@ -257,10 +260,8 @@ class CheckoutView(LoginRequiredMixin, View):
         else:
             cart_items = Cart.objects.filter(user=user)
             if not cart_items.exists():
-                return JsonResponse({
-                    "status": "error",
-                    "message": "Cart is empty"
-                }, status=400)
+                messages.info(request, "Cart is empty")
+                return render(request, 'product/checkout.html')
             
             cart_data = [{
                 'id': item.product.id,
@@ -301,10 +302,9 @@ class CheckoutView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         user = request.user
         address_id = request.POST.get('address')
-        payment = request.POST.get('payment')
+        payment = request.POST.get('payment', '').lower()
         order_id = request.POST.get('order_id')
-        payment = "Khalti"
-        
+
         try:
             location = Location.objects.get(id=address_id)
         except Location.DoesNotExist:
@@ -315,26 +315,47 @@ class CheckoutView(LoginRequiredMixin, View):
 
         order = Order.objects.get(id=order_id)
         
+        try:
+            total_amount, product_details = self._process_order_details(order, user, payment)
+        except ValueError as e:
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=400)
+
+        order.address = location
+        order.save()
+
+        if payment == "esewa":
+            return self._handle_esewa_payment(request, order, total_amount)
+        elif payment == "khalti":
+            return self._handle_khalti_payment(order, total_amount, product_details)
+        else:
+            return JsonResponse({
+                "status": "error",
+                "message": "Invalid payment method"
+            }, status=400)
+
+    def _process_order_details(self, order, user, payment):
         total_amount = 0
         product_details = []
-        product_order = ProductOrder.objects.filter(order=order)
         
-        for product_order in product_order.all():
+        product_orders = ProductOrder.objects.filter(order=order)
+        
+        for product_order in product_orders:
             product = product_order.product
             quantity = product_order.quantity
             
             if quantity > product.quantity:
-                return JsonResponse({
-                    "status": "error",
-                    "message": f"Insufficient stock for {product.title}"
-                }, status=400)
+                raise ValueError(f"Insufficient stock for {product.title}")
             
-            item_total = product.price * 100 * quantity
+            item_total = product.price * quantity
             total_amount += item_total
-            purchase_history = PaymentHistory.objects.create(
-                seller=product_order.product.seller,
+            
+            PaymentHistory.objects.create(
+                seller=product.seller,
                 buyer=user,
-                amount=product_order.quantity * product_order.product.price,
+                amount=quantity * product.price,
                 order=order,
                 transaction_status="INITIATE",
                 transaction_type=payment.upper()
@@ -347,19 +368,69 @@ class CheckoutView(LoginRequiredMixin, View):
                 "quantity": quantity,
                 "unit_price": product.price * 100
             })
+            
+        return total_amount, product_details
 
-        order.address = location
-        order.save()
+    def _generate_esewa_signature(self, fields_dict, signed_field_names, secret_key):
+        fields_to_sign = signed_field_names.split(',')
+        values = []
+        for field in fields_to_sign:
+            value = fields_dict[field]
+            values.append(f'{field}={value}')
+        
+        input_string = ','.join(values)
+        signature = hmac.new(
+            secret_key.encode('utf-8'),
+            input_string.encode('utf-8'),
+            hashlib.sha256
+        )
+        return base64.b64encode(signature.digest()).decode('utf-8')
 
+    def _handle_esewa_payment(self, request, order, total_amount):
+        transaction_uuid = str(uuid.uuid4())
+                
+        esewa_fields = {
+            'amount': str(total_amount),
+            'tax_amount': '0',
+            'total_amount': str(total_amount),
+            'transaction_uuid': transaction_uuid,
+            'product_code': 'EPAYTEST',
+            'product_service_charge': '0',
+            'product_delivery_charge': '0',
+            'success_url': f"{settings.TRANSACTION_REDIRECT_URL}",
+            'failure_url': f"{settings.WEBSITE_URL}",
+            'signed_field_names': 'total_amount,transaction_uuid,product_code'
+        }
+        
+        signature = self._generate_esewa_signature(
+            esewa_fields,
+            esewa_fields['signed_field_names'],
+            settings.ESEWA_SECRET_KEY
+        )
+        
+        esewa_fields['signature'] = signature
+        print(esewa_fields)
+        
+        PaymentHistory.objects.filter(order=order).update(
+            transaction_id=transaction_uuid
+        )
+        return render(
+            request,
+            'product/esewa_checkout.html',
+            {'esewa_fields': esewa_fields}
+        )
+
+    def _handle_khalti_payment(self, order, total_amount, product_details):
+        total_amount = total_amount * 100
         payment_data = {
             "return_url": settings.TRANSACTION_REDIRECT_URL,
-            "website_url": "https://example.com/",
+            "website_url": settings.WEBSITE_URL,
             "amount": total_amount,
             "purchase_order_id": order.id,
             "purchase_order_name": f"Order #{order.id}",
             "customer_info": {
-                "name": "Khalti Bahadur",
-                "email": "example@gmail.com",
+                "name": order.user.get_full_name(),
+                "email": order.user.email,
                 "phone": "9800000123"
             },
             "amount_breakdown": [
@@ -373,73 +444,103 @@ class CheckoutView(LoginRequiredMixin, View):
                 }
             ],
             "product_details": product_details,
-            "merchant_username": "merchant_name",
+            "merchant_username": order.user.get_full_name(),
             "merchant_extra": "merchant_extra"
         }
 
-        url = settings.KHALTI_URL
         headers = {
             'Authorization': settings.KHALTI_AUTH,
             'Content-Type': 'application/json'
         }
-        
-        response = requests.request(
-            "POST",
-            url,
+
+        response = requests.post(
+            settings.KHALTI_URL,
             headers=headers,
             data=json.dumps(payment_data)
         )
         
         data = response.json()
-        transaction_id = data['pidx']
-
-        PaymentHistory.objects.filter(order=order).update(transaction_response=data)
-        PaymentHistory.objects.filter(order=order).update(transaction_id=transaction_id)
         
+        if response.status_code != 200:
+            return JsonResponse({
+                "status": "error",
+                "message": data.get('detail', 'Payment initialization failed')
+            }, status=400)
+
+        PaymentHistory.objects.filter(order=order).update(
+            transaction_response=data,
+            transaction_id=data['pidx']
+        )
+
         return redirect(data['payment_url'])
 
 class PurchaseView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         pidx = request.GET.get('pidx', '')
-        url = settings.KHALTI_LOOKUP_URL
-        payload = json.dumps({
-            "pidx": pidx
-        })
-        print(settings.KHALTI_AUTH)
-        headers = {
-            'Authorization': f'key {settings.KHALTI_AUTH}',
-            'Content-Type': 'application/json',
-        }
-        response = requests.request("POST", url, headers=headers, data=payload)
-        if not response.status_code == 200:
-            print(response)
-            messages.info(request, "ERROR")
-            return render(request, 'product/payment.html')
-        data = response.json()
+        data = request.GET.get('data', '')
+        if pidx:
+            status = request.GET.get('status', '')
+            if status != "Completed":
+                messages.info(request, status)
+                return render(request, 'product/payment.html')
+                
+            response = self._handle_khalti_lookup(pidx)
+            if not response.status_code == 200:
+                messages.error(request, "Khalti payment lookup failed")
+                print(response)
+                return render(request, 'product/payment.html')
+            lookup_data = response.json()
 
-        if not data['status'] == "Completed":
-            print(data)
-            messages.info(request, "ERROR")
+            if lookup_data['status'] != "Completed":
+                messages.error(request, "Khalti payment not completed")
+                print(lookup_data)
+                return render(request, 'product/payment.html')
+            
+            msg = self._handle_completed_payment(lookup_data['pidx'], request.user, response)
+            messages.success(request, f"{msg}")
             return render(request, 'product/payment.html')
         
-        payment = PaymentHistory.objects.filter(transaction_id=data['pidx']).first()
+        elif data:
+            decoded_data = base64.b64decode(data).decode('utf-8')
+            data = json.loads(decoded_data)
+            
+            if data['status'] != "COMPLETE":
+                messages.error(request, "Esewa payment not completed")
+                print(data)
+                return render(request, 'product/payment.html')
+            
+            response = self._handle_esewa_lookup(data["product_code"], data["total_amount"], data["transaction_uuid"])
+            if not response.status_code == 200:
+                messages.error(request, "Esewa payment lookup failed")
+                print(response)
+                return render(request, 'product/payment.html')
+            lookup_data = response.json()
+
+            if lookup_data['status'] != "COMPLETE":
+                messages.error(request, "Esewa payment not completed")
+                print(lookup_data)
+                return render(request, 'product/payment.html')
+
+            msg = self._handle_completed_payment(lookup_data['transaction_uuid'], request.user, response)
+            messages.success(request, f"{msg}")
+            return render(request, 'product/payment.html')
+
+    def _handle_completed_payment(self, transaction_id, user, response):
+        payment = PaymentHistory.objects.filter(transaction_id=transaction_id).first()
         order = payment.order
         if order.is_paid:
-            messages.info(request, "Already Paid")
-            return render(request, 'product/payment.html')
+            return "Aleady Paid"
         
         product_order = ProductOrder.objects.filter(order=order)
         for product_order in product_order.all():
             product = product_order.product
             quantity = product_order.quantity
 
-            if product.quantity < quantity:
-                raise ValueError(f"Insufficient inventory for {product.title}")
             product.quantity -= quantity
             product.save()
 
             cart = Cart.objects.filter(
-                user=request.user, 
+                user=user, 
                 product=product
             ).first()
             
@@ -449,10 +550,29 @@ class PurchaseView(LoginRequiredMixin, View):
             order.is_paid = True
             order.save()
 
-        payments = PaymentHistory.objects.filter(transaction_id=data['pidx'])
+        payments = PaymentHistory.objects.filter(transaction_id=transaction_id)
         for payment in payments:
             payment.transaction_status = "COMPLETE"
-            
-        messages.success(request, f"Payment {data["status"]}")
-        return render(request, 'product/payment.html')
-        
+            payment.transaction_response = response
+        return "Payment Complete"
+
+    def _handle_khalti_lookup(self, pidx):
+        url = settings.KHALTI_LOOKUP_URL
+        payload = json.dumps({"pidx": pidx})
+        headers = {
+            'Authorization': settings.KHALTI_AUTH,
+            'Content-Type': 'application/json',
+        }
+        try:
+            return requests.post(url, headers=headers, data=payload)
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+            return None
+    
+    def _handle_esewa_lookup(self, product_code, total_amount, transaction_uuid):
+        url = f"{settings.ESEWA_LOOKUP_URL}?product_code={product_code}&total_amount={total_amount.replace(',', '')}&transaction_uuid={transaction_uuid}"
+        try:
+            return requests.get(url)
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+            return None

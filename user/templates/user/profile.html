@@ -1,87 +1,115 @@
-{% extends 'product/base.html' %}
-{% load static %}
-
+{% extends 'product/base.html' %} {% load static %} 
 {% block content %}
-<section style="background-color: #eee;">
-    <div class="container py-5">  
-      <div class="row">
-        <div class="col-lg-4">
-          <div class="card mb-4">
-            <div class="card-body text-center">
-              <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3.webp" alt="avatar"
-                class="rounded-circle img-fluid" style="width: 150px;">
-              <h5 class="my-3">{{ user.get_full_name }}</h5>
-              <p class="text-muted mb-4">{{ user.address }}</p>
-              <div class="d-flex justify-content-center mb-2">
-                <a href="{% url 'user:edit-profile' %}" class="btn btn-primary">Edit</a>
-                {% comment %} <button  type="button" data-mdb-button-init data-mdb-ripple-init class="btn btn-outline-primary ms-1">Message</button> {% endcomment %}
+<section style="background-color: #eee" class="h-100 d-flex h-100 flex-grow-1">
+  <div class="container py-5">
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-body text-center">
+            <img
+              src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3.webp"
+              alt="avatar"
+              class="rounded-circle img-fluid"
+              style="width: 150px"
+            />
+            <h5 class="my-3">{{ user.get_full_name }}</h5>
+            <p class="text-muted mb-4">{{ user.address }}</p>
+            <div class="d-flex justify-content-center mb-2">
+              <a href="{% url 'user:edit-profile' %}" class="btn btn-primary"
+                >Edit Profile</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-sm-3">
+                <p class="mb-0">Full Name</p>
+              </div>
+              <div class="col-sm-9">
+                <p class="text-muted mb-0">{{ user.get_full_name }}</p>
+              </div>
+            </div>
+            <hr />
+            <div class="row">
+              <div class="col-sm-3">
+                <p class="mb-0">Email</p>
+              </div>
+              <div class="col-sm-9">
+                <p class="text-muted mb-0">{{ user.email }}</p>
+              </div>
+            </div>
+            <hr />
+            <div class="row">
+              <div class="col-sm-3">
+                <p class="mb-0">Address</p>
+              </div>
+              <div class="col-sm-9">
+                <p class="text-muted mb-0">{{ user.address }}</p>
               </div>
             </div>
           </div>
         </div>
-        <div class="col-lg-8">
-          <div class="card mb-4">
-            <div class="card-body">
-              <div class="row">
-                <div class="col-sm-3">
-                  <p class="mb-0">Full Name</p>
-                </div>
-                <div class="col-sm-9">
-                  <p class="text-muted mb-0">{{ user.get_full_name }}</p>
-                </div>
-              </div>
-              <hr>
-              <div class="row">
-                <div class="col-sm-3">
-                  <p class="mb-0">Email</p>
-                </div>
-                <div class="col-sm-9">
-                  <p class="text-muted mb-0">{{ user.email }}</p>
-                </div>
-              </div>
-              <hr>
-              <div class="row">
-                <div class="col-sm-3">
-                  <p class="mb-0">Address</p>
-                </div>
-                <div class="col-sm-9">
-                  <p class="text-muted mb-0">{{ user.address }}</p>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+              <div class="card-body">
+                <h6 class="card-title mb-4">Shopping Cart</h6>
+                <div class="cart-items">
+                  {% for item in cart %}
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex justify-content-between w-100">
+                      <a
+                      href="{% url 'product:detail' item.product.id %}"
+                      class="text-primary small text-decoration-none"
+                      >
+                        <p class="mb-1 fw-bold">{{ item.product.title }}</p>
+                      </a>
+                      <p class="text-muted small mb-0">
+                        Quantity: {{ item.quantity }}
+                      </p>
+
+                    </div>
+                  </div>
+                  {% empty %}
+                  <p class="text-muted text-center mb-0">Your cart is empty</p>
+                  {% endfor %}
                 </div>
               </div>
             </div>
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="card mb-4 mb-md-0">
-                <div class="card-body">
-                  <p class="mb-4">Cart
-                  </p>
-                  {% for item in cart %}
-                  <p class="mb-1">{{ item.product.title }}</p>
+
+          <div class="col-md-6">
+            <div class="card mb-4 mb-md-0">
+              <div class="card-body">
+                <h6 class="card-title mb-4">Favorite Items</h6>
+                <div class="favorite-items">
+                  {% for product in favorite_products %}
+                  <div class="d-flex align-items-center mb-3">
+                    <div>
+                      <a
+                      href="{% url 'product:detail' product.id %}"
+                      class="text-primary small text-decoration-none"
+                      >
+                        <p class="mb-1 fw-bold">{{ product.title }}</p>
+                      </a>
+                    </div>
+                  </div>
                   {% empty %}
-                  <p class="mb-1">Cart Empty</p>
+                  <p class="text-muted text-center mb-0">
+                    No favorite items yet
+                  </p>
                   {% endfor %}
-                  
                 </div>
               </div>
             </div>
-
-            <div class="col-md-6">
-                <div class="card mb-4 mb-md-0">
-                  <div class="card-body">
-                    <p class="mb-4">Favorite
-                    </p>
-                    {% for item in favorite %}
-                    <p class="mb-1">{{ item.product.title }}</p>
-                    {% empty %}
-                    <p class="mb-1">Favorite List Empty</p>
-                    {% endfor %}
-                    
-                  </div>
-                </div>
-              </div>
+          </div>
         </div>
       </div>
     </div>
-  </section>
-  {% endblock %}
+  </div>
+</section>
+{% endblock %}
