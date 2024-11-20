@@ -1,44 +1,44 @@
 [
-    {
-        "model": "user.Location",
-        "pk": 1,
-        "fields": {
-            "title": "Kupondole"
-        }
-    },
-    {
-        "model": "user.Location",
-        "pk": 2,
-        "fields": {
-            "title": "Jhamsikhel"
-        }
-    },
-    {
-        "model": "user.Location",
-        "pk": 3,
-        "fields": {
-            "title": "Pulchowk"
-        }
-    },
-    {
-        "model": "user.Location",
-        "pk": 4,
-        "fields": {
-            "title": "Jawalalkhel"
-        }
-    },
-    {
-        "model": "user.Location",
-        "pk": 2,
-        "fields": {
-            "title": "Sanepa"
-        }
-    },
-    {
-        "model": "user.Location",
-        "pk": 2,
-        "fields": {
-            "title": "Kumaripati"
-        }
+  {
+    "model": "user.Location",
+    "pk": 1,
+    "fields": {
+      "title": "Kupondole"
     }
+  },
+  {
+    "model": "user.Location",
+    "pk": 2,
+    "fields": {
+      "title": "Jhamsikhel"
+    }
+  },
+  {
+    "model": "user.Location",
+    "pk": 3,
+    "fields": {
+      "title": "Pulchowk"
+    }
+  },
+  {
+    "model": "user.Location",
+    "pk": 4,
+    "fields": {
+      "title": "Jawalalkhel"
+    }
+  },
+  {
+    "model": "user.Location",
+    "pk": 5,
+    "fields": {
+      "title": "Sanepa"
+    }
+  },
+  {
+    "model": "user.Location",
+    "pk": 6,
+    "fields": {
+      "title": "Kumaripati"
+    }
+  }
 ]
