@@ -58,7 +58,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user',
     'product',
-
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -168,3 +169,11 @@ WEBSITE_URL = env('WEBSITE_URL')
 KHALTI_URL=env('KHALTI_URL')
 KHALTI_LOOKUP_URL=env('KHALTI_LOOKUP_URL')
 KHALTI_AUTH=env('KHALTI_AUTH')
+# save Celery task results in Django's database
+CELERY_RESULT_BACKEND = "django-db"
+
+# This configures Redis as the datastore between Django + Celery
+CELERY_BROKER_URL = env('CELERY_BROKER_REDIS_URL', default='')
+
+# this allows you to schedule items in the Django admin.
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'

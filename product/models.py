@@ -63,7 +63,7 @@ class Product(models.Model):
         return False
 
     def __str__(self):
-        return f"({self.id}) {self.title} - {self.seller.first_name}"
+        return f"{self.title}"
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -106,18 +106,9 @@ class Order(DateModel):
         if created:
             return True
         return False
-
-    def complete(self, address):
-        if self.product.quantity >= self.quantity:
-            self.address = address
-            self.is_paid = True
-            self.save()
-
-            self.product.quantity -= self.quantity
-            self.product.save()
-            return True
-        else:
-            return False
+        
+    def __str__(self):
+        return f"{self.user.email} {self.is_paid} {self.is_deleted}"
 
 class ProductOrder(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -125,7 +116,7 @@ class ProductOrder(models.Model):
     quantity = models.PositiveIntegerField() 
 
     def __str__(self):
-        return f"{self.product} - {self.quantity}"
+        return f"#{self.order.id} {self.product.title} - {self.quantity}"
 
 class PaymentHistory(DateModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment')
@@ -138,7 +129,7 @@ class PaymentHistory(DateModel):
     transaction_type = models.CharField(choices=TransactionType.choices)
 
     def __str__(self):
-        return f'({self.id}) {self.transaction_type} {self.buyer.id} {self.seller.id} {self.order}'
+        return f'#{self.order.id} {self.transaction_type} ({self.transaction_status}) {self.buyer.id} {self.seller.id}'
     
     
 class Favorite(models.Model):
